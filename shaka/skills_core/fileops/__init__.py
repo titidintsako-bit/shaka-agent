@@ -5,6 +5,7 @@ Handles reading, writing, creating, and managing files and directories.
 
 import os
 import json
+import tempfile
 from pathlib import Path
 from typing import Dict, Any
 
@@ -16,6 +17,7 @@ class SkillHandler:
         # Security: restrict to user's home directory and project directory
         self.allowed_paths = [
             os.path.expanduser("~"),  # User's home
+            tempfile.gettempdir(),  # System temp directory for safe scratch workflows
             os.getcwd(),  # Current working directory
             str(Path(__file__).resolve().parents[3]),  # Shaka project directory
         ]
