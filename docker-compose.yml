@@ -1,0 +1,20 @@
+services:
+  shaka:
+    build: .
+    environment:
+      SHAKA_HOME: /home/shaka/.shaka
+      SHAKA_PROVIDER: ${SHAKA_PROVIDER:-groq}
+      SHAKA_MODEL: ${SHAKA_MODEL:-llama-3.3-70b-versatile}
+      SHAKA_API_KEY: ${SHAKA_API_KEY:-}
+      SHAKA_BASE_URL: ${SHAKA_BASE_URL:-}
+      SHAKA_LANGUAGE: ${SHAKA_LANGUAGE:-en}
+      SHAKA_HOST: 0.0.0.0
+      SHAKA_PORT: 18789
+      SHAKA_GATEWAY_TOKEN: ${SHAKA_GATEWAY_TOKEN:-}
+    ports:
+      - "18789:18789"
+    volumes:
+      - shaka-home:/home/shaka/.shaka
+
+volumes:
+  shaka-home:

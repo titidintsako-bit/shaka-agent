@@ -1,0 +1,18 @@
+name: codeexec
+description: Execute code in various languages (Python, Bash, etc.) and return output
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - run code
+  - execute code
+  - execute
+  - run
+  - test code
+  - python
+  - bash
+  - shell
+risk:
+  level: risky_write
+  mutating: true
+  approval_required: true
+  notes: Executes local code or shell commands; execution should be approval gated.

@@ -1,0 +1,12 @@
+name: systeminfo
+description: Display system information (CPU, RAM, disk, OS)
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - system info
+  - system information
+  - specs
+  - hardware info
+  - cpu info
+  - ram info
+  - disk usage

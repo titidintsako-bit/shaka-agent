@@ -1,0 +1,18 @@
+name: fileops
+description: File operations - read, write, create, list files and directories
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - read file
+  - write file
+  - create file
+  - list files
+  - show directory
+  - file exists
+  - delete file
+  - edit file
+risk:
+  level: risky_write
+  mutating: true
+  approval_required: true
+  notes: Can create, edit, or delete local files; write/delete actions should be approval gated.

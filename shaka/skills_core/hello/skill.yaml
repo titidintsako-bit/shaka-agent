@@ -1,0 +1,10 @@
+name: hello
+description: Basic greeting and introduction skill
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - hello
+  - hi shaka
+  - who are you
+  - what can you do
+  - help

@@ -1,0 +1,10 @@
+name: loadshedding
+description: Check Eskom load shedding schedules for South African areas
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - load shedding
+  - loadshedding
+  - eskom
+  - power outage
+  - electricity schedule

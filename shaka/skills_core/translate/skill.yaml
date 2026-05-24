@@ -1,0 +1,13 @@
+name: translate
+description: Translate text between languages (currently supports English to Zulu)
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - translate
+  - translation
+  - convert language
+usage: |
+  Use this skill to translate text:
+  - "translate hello to Zulu"
+  - "how do you say thank you in Zulu?"
+  - "convert 'good morning' to Zulu"

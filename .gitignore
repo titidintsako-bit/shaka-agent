@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local Shaka state and credentials
+.shaka/
+runtime/
+logs/
+credentials/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

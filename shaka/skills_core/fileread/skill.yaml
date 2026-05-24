@@ -1,0 +1,9 @@
+name: fileread
+description: Read and summarize file contents
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - read file
+  - open file
+  - show me the contents
+  - cat

@@ -1,0 +1,14 @@
+name: websearch
+description: Search the web and return results
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - search
+  - look up
+  - find
+  - google
+  - research
+  - news
+  - latest
+  - current
+  - web search

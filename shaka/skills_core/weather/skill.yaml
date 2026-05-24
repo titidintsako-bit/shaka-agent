@@ -1,0 +1,8 @@
+name: weather
+description: Get current weather for any city
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - weather
+  - temperature
+  - forecast

@@ -1,0 +1,9 @@
+name: calculator
+description: Perform mathematical calculations and evaluate expressions
+version: 0.1.0
+author: Shaka Community
+triggers:
+  - calculate
+  - compute
+  - math
+  - evaluate

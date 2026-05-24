@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shaka Workbench</title>
+  <style>
+    :root {
+      --bg: #090d0f;
+      --shell: #0d1216;
+      --panel: #12181e;
+      --panel-2: #151d24;
+      --panel-3: #0d1318;
+      --line: #24303a;
+      --line-soft: rgba(255, 255, 255, 0.07);
+      --text: #ecf2f6;
+      --muted: #9aa8b5;
+      --faint: #687783;
+      --accent: #d3a24f;
+      --accent-2: #75b99b;
+      --good: #79c58d;
+      --warn: #e2b765;
+      --danger: #e16f66;
+      --mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+    }
+
+    button, input, textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 34px;
+      border: 1px solid rgba(211, 162, 79, 0.42);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: #171106;
+      background: linear-gradient(180deg, #e7bd72, var(--accent));
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover { filter: brightness(1.05); }
+    button:disabled {
+      cursor: wait;
+      opacity: 0.55;
+      filter: grayscale(0.3);
+    }
+
+    button.secondary {
+      color: var(--text);
+      border-color: var(--line);
+      background: #10171c;
+      box-shadow: none;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: #0b1116;
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus, textarea:focus {
+      border-color: rgba(211, 162, 79, 0.72);
+      box-shadow: 0 0 0 3px rgba(211, 162, 79, 0.1);
+    }
+
+    code, pre { font-family: var(--mono); }
+    code {
+      color: #dfc381;
+      overflow-wrap: anywhere;
+      font-size: 0.86em;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 18px 14px;
+      border-right: 1px solid var(--line-soft);
+      background: rgba(10, 15, 19, 0.94);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 4px 4px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      border: 1px solid rgba(211, 162, 79, 0.44);
+      border-radius: 10px;
+      color: #e5bd70;
+      background: #141a20;
+      font-family: var(--mono);
+      font-weight: 900;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.12rem;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      align-content: start;
+      gap: 5px;
+    }
+
+    .nav button {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid transparent;
+      padding: 0 10px;
+      color: var(--muted);
+      background: transparent;
+      box-shadow: none;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .nav button.active,
+    .nav button:hover {
+      color: var(--text);
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .sidebar-foot {
+      display: grid;
+      gap: 8px;
+      color: var(--faint);
+      font-size: 0.78rem;
+    }
+
+    .workspace-chip {
+      padding: 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: #0d1318;
+    }
+
+    .workspace-chip code {
+      display: block;
+      word-break: break-all;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 16px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 58px;
+      padding: 12px 14px;
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      background: rgba(13, 18, 22, 0.92);
+    }
+
+    .title-row {
+      min-width: 0;
+    }
+
+    .title-row h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0;
+    }
+
+    .title-row p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 26px;
+      gap: 7px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(10, 15, 19, 0.78);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge.good {
+      border-color: rgba(117, 185, 155, 0.35);
+      color: #a8d9c3;
+      background: rgba(117, 185, 155, 0.08);
+    }
+
+    .badge.warn {
+      border-color: rgba(226, 183, 101, 0.36);
+      color: #efcd8d;
+      background: rgba(226, 183, 101, 0.08);
+    }
+
+    .badge.danger {
+      border-color: rgba(225, 111, 102, 0.4);
+      color: #f2aaa4;
+      background: rgba(225, 111, 102, 0.08);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--good);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(18, 24, 30, 0.86);
+    }
+
+    .metric .label {
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric .value {
+      margin-top: 5px;
+      font-size: 1.35rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .workspace {
+      grid-column: span 2;
+    }
+
+    .workspace code {
+      display: block;
+      margin-top: 7px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(270px, 0.72fr) minmax(430px, 1.2fr) minmax(300px, 0.68fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      background: rgba(18, 24, 30, 0.93);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .panel-body {
+      padding: 12px 14px 14px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .split-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .queue {
+      display: grid;
+      gap: 8px;
+      max-height: 72vh;
+      overflow: auto;
+    }
+
+    .queue-item {
+      display: grid;
+      gap: 6px;
+      padding: 11px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: #0f151a;
+    }
+
+    .queue-item.interactive {
+      cursor: pointer;
+    }
+
+    .queue-item.interactive:hover,
+    .queue-item.selected {
+      border-color: rgba(211, 162, 79, 0.36);
+      background: #121a20;
+    }
+
+    .queue-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .queue-title {
+      min-width: 0;
+      font-weight: 850;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .queue-meta {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-panel {
+      min-height: 72vh;
+    }
+
+    .task-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      background: rgba(8, 13, 17, 0.38);
+    }
+
+    .task-toolbar[hidden] {
+      display: none;
+    }
+
+    .action-status {
+      flex: 1 1 100%;
+      color: var(--muted);
+      font-size: 0.83rem;
+      min-height: 18px;
+    }
+
+    .detail-output,
+    .eval-output {
+      width: 100%;
+      min-height: 340px;
+      max-height: 62vh;
+      overflow: auto;
+      margin: 0;
+      padding: 14px;
+      color: #c7d1da;
+      background: #090e12;
+      border: 0;
+      border-radius: 0;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .chat-log {
+      min-height: 210px;
+      max-height: 330px;
+      overflow: auto;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #090e12;
+    }
+
+    .message {
+      padding: 10px 11px;
+      border: 1px solid var(--line-soft);
+      border-left: 3px solid var(--accent-2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--text);
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .message + .message {
+      margin-top: 8px;
+    }
+
+    .message.user { border-left-color: #8ab4d7; }
+    .message.error {
+      border-left-color: var(--danger);
+      color: #ffc8c2;
+      background: rgba(225, 111, 102, 0.08);
+    }
+
+    .message-meta {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .command-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .tool-card {
+      padding: 11px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: #0f151a;
+    }
+
+    .tool-card strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.92rem;
+    }
+
+    .sub, .empty {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line-soft);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .hidden-section {
+      display: none;
+    }
+
+    .inspector {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (max-width: 1320px) {
+      .app { grid-template-columns: 76px minmax(0, 1fr); }
+      .brand div:last-child, .nav span.label, .sidebar-foot { display: none; }
+      .nav button { justify-content: center; }
+      .workbench {
+        grid-template-columns: minmax(260px, 0.78fr) minmax(430px, 1.22fr);
+      }
+      .inspector { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 940px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        grid-template-rows: auto;
+        gap: 10px;
+        padding: 10px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .brand div:last-child, .nav span.label, .sidebar-foot { display: block; }
+      .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .nav button { justify-content: space-between; }
+      .topbar, .workbench, .inspector, .metrics { grid-template-columns: 1fr; }
+      .metrics { display: none; }
+      .status-strip { justify-content: flex-start; }
+      .workspace { grid-column: auto; }
+      .queue { max-height: 360px; }
+    }
+
+    @media (max-width: 560px) {
+      .main { padding: 10px; }
+      .nav { grid-template-columns: 1fr 1fr; }
+      .nav button { padding: 0 14px; }
+      .split-form, .command-form { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="mark">SK</div>
+        <div>
+          <h1>Shaka</h1>
+          <span>Workbench</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <button class="active" type="button" data-target="workflows"><span class="label">Workflows</span><span id="workflows-nav-count">{{ tasks|length }}</span></button>
+        <button type="button" data-target="chat"><span class="label">Command</span><span>AI</span></button>
+        <button type="button" data-target="builder"><span class="label">Builder</span><span>WEB</span></button>
+        <button type="button" data-target="cron"><span class="label">Cron</span><span id="cron-nav-count">{{ runtime.cron_job_count }}</span></button>
+        <button type="button" data-target="proof"><span class="label">Proof</span><span>MD</span></button>
+        <button type="button" data-target="skills"><span class="label">Skills</span><span>{{ skills|length }}</span></button>
+        <button type="button" data-target="sessions"><span class="label">Sessions</span><span>{{ sessions|length }}</span></button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="workspace-chip">
+          <div class="sub">Workspace</div>
+          <code>{{ runtime.workspace_path }}</code>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title-row">
+          <h2>Local Runtime Control Plane</h2>
+          <p>Workflow execution, approvals, provider status, and local workspace state.</p>
+        </div>
+        <div class="status-strip" aria-label="Runtime status">
+          <span class="pill"><span class="dot"></span>Gateway</span>
+          <span class="pill">{{ runtime.gateway.host }}:{{ runtime.gateway.port }}</span>
+          <span class="pill">{{ runtime.provider.provider }} / {{ runtime.provider.model }}</span>
+          <span class="pill">{{ "daemon running" if runtime.daemon.running else "daemon stopped" }}</span>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Runtime metrics">
+        <div class="metric">
+          <div class="label">Sessions</div>
+          <div class="value" id="total-sessions">{{ stats.total_sessions }}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Tokens</div>
+          <div class="value" id="total-tokens">{{ "{:,.0f}".format(stats.total_tokens) }}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Skills</div>
+          <div class="value">{{ skills|length }}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Approvals</div>
+          <div class="value" id="approval-count">{{ approvals|length }}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Queue</div>
+          <div class="value" id="task-count">{{ tasks|length }}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Cron</div>
+          <div class="value" id="cron-count">{{ runtime.cron_job_count }}</div>
+        </div>
+      </section>
+
+      <section class="workbench" id="workflows-section">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Workflow Queue</h3>
+              <p id="task-badge">{{ tasks|length }} items</p>
+            </div>
+            <span class="badge warn" id="approval-badge">{{ approvals|length }} pending</span>
+          </div>
+          <div class="panel-body">
+            <div id="tasks" class="queue">
+              {% if tasks %}
+                {% for task in tasks %}
+                  <div class="queue-item interactive" data-task-id="{{ task.id }}">
+                    <div class="queue-top">
+                      <strong class="queue-title">{{ task.title }}</strong>
+                      <span class="badge good">{{ task.status }}</span>
+                    </div>
+                    {% if task.summary %}<div class="queue-meta">{{ task.summary }}</div>{% endif %}
+                    <code>{{ task.id }}</code>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p class="empty">No automation tasks yet.</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Task Detail</h3>
+              <p id="selected-task-label">Select a workflow to inspect payload, steps, and actions.</p>
+            </div>
+          </div>
+          <div id="task-actions" class="task-toolbar" hidden>
+            <button id="task-approve" type="button">Approve Plan</button>
+            <button id="task-execute" type="button">Execute Check</button>
+            <button id="task-resume" class="secondary" type="button">Resume Record-Only</button>
+            <button id="task-cancel" class="secondary" type="button">Cancel</button>
+            <button id="task-retry" class="secondary" type="button">Retry</button>
+            <div id="task-action-status" class="action-status"></div>
+          </div>
+          <pre id="task-detail" class="detail-output">No task selected.</pre>
+        </section>
+
+        <aside class="inspector">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>Provider</h3>
+                <p>{{ "ready" if runtime.provider.configured else "missing key" }}</p>
+              </div>
+            </div>
+            <div class="panel-body tool-grid">
+              <div class="tool-card">
+                <strong>{{ runtime.provider.provider }}</strong>
+                <div class="sub">{{ runtime.provider.model }}</div>
+                <div class="sub">Source: {{ runtime.provider.source }}</div>
+              </div>
+              <div class="tool-card">
+                <strong>Credentials</strong>
+                <div class="sub">{{ runtime.credential_count }} local credential records</div>
+              </div>
+              <div class="tool-card">
+                <strong>Providers</strong>
+                <div class="sub">{{ runtime.providers|length }} supported adapters</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>Pending Approvals</h3>
+                <p>Human-gated actions</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div id="approvals" class="queue">
+                {% if approvals %}
+                  {% for approval in approvals %}
+                    <div class="queue-item">
+                      <div class="queue-top">
+                        <strong class="queue-title">{{ approval.action }}</strong>
+                        <span class="badge warn">pending</span>
+                      </div>
+                      <div class="queue-meta">{{ approval.summary }}</div>
+                      <code>{{ approval.id }}</code>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <p class="empty">No pending approvals.</p>
+                {% endif %}
+              </div>
+              <form id="approve-form" class="split-form" style="margin-top:10px">
+                <input id="approval-id" autocomplete="off" placeholder="approval_id">
+                <button type="submit">Approve</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>Runtime</h3>
+                <p>{{ runtime.home }}</p>
+              </div>
+            </div>
+            <div class="panel-body tool-grid">
+              <div class="tool-card">
+                <strong>Gateway Auth</strong>
+                <div class="sub">{{ runtime.gateway.auth }} on {{ runtime.gateway.host }}:{{ runtime.gateway.port }}</div>
+              </div>
+              <div class="tool-card">
+                <strong>Daemon</strong>
+                <div class="sub">{{ "running" if runtime.daemon.running else "stopped" }}</div>
+              </div>
+              <div class="tool-card">
+                <strong>Recent Tool Calls</strong>
+                <div class="sub">{{ runtime.recent_tool_calls|length }} recent step records</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="workbench hidden-section" id="chat-section">
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Command Transcript</h3>
+              <p>Send local runtime instructions through the configured provider.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="chat-log" id="chat-log">
+              <div class="message">
+                <span class="message-meta">assistant / ready</span>
+                Ask Shaka to inspect code, use a skill, draft a plan, or execute a developer workflow.
+              </div>
+            </div>
+            <form id="chat-form" class="command-form">
+              <input id="message" name="message" autocomplete="off" placeholder="Command Shaka">
+              <button id="send" type="submit">Send</button>
+            </form>
+          </div>
+        </section>
+      </section>
+
+      <section class="workbench hidden-section" id="builder-section">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Website Builder</h3>
+              <p>Queue a local site build workflow.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <form id="build-site-form" class="stack">
+              <textarea id="site-prompt" autocomplete="off" placeholder="Build a full-stack app for..."></textarea>
+              <input id="site-path" autocomplete="off" placeholder="C:\path\to\new-app">
+              <button type="submit">Build Site</button>
+            </form>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Eval Panel</h3>
+              <p>Run the configured harness and inspect raw output.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <button id="run-eval" type="button">Run Evals</button>
+            <pre id="eval-output" class="eval-output">No eval run yet.</pre>
+          </div>
+        </section>
+      </section>
+
+      <section class="workbench hidden-section" id="cron-section">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Local Cron Jobs</h3>
+              <p>Run allowlisted maintenance and workflow commands from the user machine.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="cron-jobs" class="queue">
+              {% if runtime.cron_jobs %}
+                {% for job in runtime.cron_jobs %}
+                  <div class="queue-item">
+                    <div class="queue-top">
+                      <strong class="queue-title">{{ job.name }}</strong>
+                      <span class="badge good">{{ "enabled" if job.enabled else "disabled" }}</span>
+                    </div>
+                    <div class="queue-meta">{{ job.schedule }} · next {{ job.next_run_at }}</div>
+                    <code>{{ job.command }}</code>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p class="empty">No cron jobs configured.</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Scheduler Control</h3>
+              <p>Add a job or run due jobs once.</p>
+            </div>
+            <button id="cron-tick" type="button">Run Due Jobs</button>
+          </div>
+          <div class="panel-body">
+            <form id="cron-form" class="stack" style="margin-top:12px">
+              <input id="cron-name" autocomplete="off" placeholder="job name">
+              <input id="cron-schedule" autocomplete="off" placeholder="@every 15m">
+              <input id="cron-command" autocomplete="off" placeholder="python -m pytest -q">
+              <input id="cron-cwd" autocomplete="off" placeholder="working directory, defaults to .">
+              <button type="submit">Add Cron Job</button>
+            </form>
+            <pre id="cron-output" class="eval-output">No cron run yet.</pre>
+          </div>
+        </section>
+      </section>
+
+      <section class="workbench hidden-section" id="proof-section">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Portfolio Proof</h3>
+              <p>Export a secret-safe local runtime report for demos, reviews, and handoff notes.</p>
+            </div>
+            <button id="proof-export" type="button">Export Markdown</button>
+          </div>
+          <div class="panel-body tool-grid">
+            <div class="tool-card">
+              <strong>Runtime</strong>
+              <div class="sub">{{ runtime.home }}</div>
+            </div>
+            <div class="tool-card">
+              <strong>Workspace</strong>
+              <div class="sub">{{ runtime.workspace_path }}</div>
+            </div>
+            <div class="tool-card">
+              <strong>Provider</strong>
+              <div class="sub">{{ runtime.provider.provider }} / {{ runtime.provider.model }}</div>
+            </div>
+            <div class="tool-card">
+              <strong>Gateway</strong>
+              <div class="sub">{{ runtime.gateway.host }}:{{ runtime.gateway.port }} with {{ runtime.gateway.auth }} auth</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Proof Snapshot</h3>
+              <p>Secret-safe JSON preview of the exported report.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <pre id="proof-output" class="eval-output">Loading proof snapshot...</pre>
+          </div>
+        </section>
+      </section>
+
+      <section class="workbench hidden-section" id="skills-section">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Gmail Skill</h3>
+              <p>Create a draft request for approval.</p>
+            </div>
+            <span class="badge good">capability</span>
+          </div>
+          <div class="panel-body">
+            <form id="email-draft-form" class="stack">
+              <input id="email-to" autocomplete="off" placeholder="to@example.com">
+              <input id="email-subject" autocomplete="off" placeholder="Subject">
+              <textarea id="email-body" autocomplete="off" placeholder="Draft body"></textarea>
+              <button type="submit">Prepare Draft</button>
+            </form>
+            <pre id="email-output" class="eval-output">No draft prepared yet.</pre>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Installed Skills</h3>
+              <p>Installed modules available to Shaka.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            {% if skills %}
+              <div class="table-wrap">
+                <table>
+                  <tr><th>Name</th><th>Description</th></tr>
+                  {% for skill in skills %}
+                    <tr>
+                      <td><strong>{{ skill.name }}</strong><br><code>{{ skill.version }}</code></td>
+                      <td>{{ skill.description }}</td>
+                    </tr>
+                  {% endfor %}
+                </table>
+              </div>
+            {% else %}
+              <p class="empty">No skills installed.</p>
+            {% endif %}
+          </div>
+        </section>
+      </section>
+
+      <section class="workbench hidden-section" id="sessions-section">
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Recent Sessions</h3>
+              <p>Last recorded local memory entries.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            {% if sessions %}
+              <div class="table-wrap">
+                <table>
+                  <tr><th>Session</th><th>Updated</th></tr>
+                  {% for s in sessions[:12] %}
+                    <tr>
+                      <td><code>{{ s.session_id[:36] }}</code></td>
+                      <td>{{ s.updated[:19] }}</td>
+                    </tr>
+                  {% endfor %}
+                </table>
+              </div>
+            {% else %}
+              <p class="empty">No sessions yet.</p>
+            {% endif %}
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const form = document.querySelector("#chat-form");
+    const input = document.querySelector("#message");
+    const send = document.querySelector("#send");
+    const log = document.querySelector("#chat-log");
+    const sessionId = `dashboard_${Date.now()}`;
+    const tasksPanel = document.querySelector("#tasks");
+    const approvalsPanel = document.querySelector("#approvals");
+    const taskCount = document.querySelector("#task-count");
+    const workflowsNavCount = document.querySelector("#workflows-nav-count");
+    const approvalCount = document.querySelector("#approval-count");
+    const taskBadge = document.querySelector("#task-badge");
+    const approvalBadge = document.querySelector("#approval-badge");
+    const taskDetail = document.querySelector("#task-detail");
+    const taskActions = document.querySelector("#task-actions");
+    const taskActionStatus = document.querySelector("#task-action-status");
+    const selectedTaskLabel = document.querySelector("#selected-task-label");
+    const taskApprove = document.querySelector("#task-approve");
+    const taskResume = document.querySelector("#task-resume");
+    const taskExecute = document.querySelector("#task-execute");
+    const taskCancel = document.querySelector("#task-cancel");
+    const taskRetry = document.querySelector("#task-retry");
+    const emailOutput = document.querySelector("#email-output");
+    const cronJobsPanel = document.querySelector("#cron-jobs");
+    const cronCount = document.querySelector("#cron-count");
+    const cronNavCount = document.querySelector("#cron-nav-count");
+    const cronOutput = document.querySelector("#cron-output");
+    const proofOutput = document.querySelector("#proof-output");
+    const proofExport = document.querySelector("#proof-export");
+    let selectedTask = null;
+    let selectedApprovalId = "";
+
+    function metaLabel(kind) {
+      const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `${kind} / ${time}`;
+    }
+
+    function addMessage(kind, text) {
+      const item = document.createElement("div");
+      const meta = document.createElement("span");
+      const body = document.createElement("span");
+      item.className = `message ${kind}`;
+      meta.className = "message-meta";
+      meta.textContent = metaLabel(kind);
+      body.textContent = text;
+      item.appendChild(meta);
+      item.appendChild(body);
+      log.appendChild(item);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function setCounts(tasks, approvals) {
+      if (taskCount) taskCount.textContent = tasks.length;
+      if (workflowsNavCount) workflowsNavCount.textContent = tasks.length;
+      if (approvalCount) approvalCount.textContent = approvals.length;
+      if (taskBadge) taskBadge.textContent = `${tasks.length} ${tasks.length === 1 ? "item" : "items"}`;
+      if (approvalBadge) approvalBadge.textContent = `${approvals.length} pending`;
+    }
+
+    function emptyNode(text) {
+      const item = document.createElement("p");
+      item.className = "empty";
+      item.textContent = text;
+      return item;
+    }
+
+    function badgeClass(status, type) {
+      if (type === "approval") return "badge warn";
+      if (status === "failed" || status === "cancelled") return "badge danger";
+      if (status === "waiting_for_approval") return "badge warn";
+      return "badge good";
+    }
+
+    async function showTaskDetail(taskId) {
+      if (!taskId || !taskDetail) return;
+      taskDetail.textContent = "Loading task detail...";
+      document.querySelectorAll(".queue-item.selected").forEach((item) => item.classList.remove("selected"));
+      const selected = document.querySelector(`[data-task-id="${CSS.escape(taskId)}"]`);
+      if (selected) selected.classList.add("selected");
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Task detail failed");
+        selectedTask = data;
+        selectedApprovalId = findApprovalId(data);
+        renderTaskActions(data);
+        selectedTaskLabel.textContent = `${data.kind || "task"} / ${data.status || "unknown"}`;
+        taskDetail.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        selectedTask = null;
+        selectedApprovalId = "";
+        renderTaskActions(null);
+        selectedTaskLabel.textContent = "Unable to load task.";
+        taskDetail.textContent = error.message;
+      }
+    }
+
+    function findApprovalId(task) {
+      if (!task || !Array.isArray(task.steps)) return "";
+      for (const step of [...task.steps].reverse()) {
+        const approvalId = step.metadata && step.metadata.approval_id;
+        if (approvalId) return approvalId;
+      }
+      return "";
+    }
+
+    function renderTaskActions(task) {
+      if (!taskActions) return;
+      if (!task) {
+        taskActions.hidden = true;
+        return;
+      }
+      const isWorkflow = task.kind === "website-workflow";
+      const status = task.status || "";
+      taskActions.hidden = false;
+      taskApprove.hidden = !(isWorkflow && selectedApprovalId && status === "waiting_for_approval");
+      taskResume.hidden = !(isWorkflow && status === "queued");
+      taskExecute.hidden = !(isWorkflow && selectedApprovalId && status === "queued");
+      taskCancel.hidden = ["completed", "cancelled"].includes(status);
+      taskRetry.hidden = !["failed", "cancelled"].includes(status);
+      taskActionStatus.textContent = isWorkflow
+        ? `Workflow ${task.id}${selectedApprovalId ? ` / approval ${selectedApprovalId}` : ""}`
+        : `Task ${task.id}`;
+    }
+
+    async function runTaskAction(label, request) {
+      if (!selectedTask) return;
+      setTaskButtons(true);
+      taskActionStatus.textContent = `${label}...`;
+      try {
+        const response = await request();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `${label} failed`);
+        taskActionStatus.textContent = `${label} completed.`;
+        await refreshRuntime();
+        await showTaskDetail(selectedTask.id);
+      } catch (error) {
+        taskActionStatus.textContent = error.message;
+      } finally {
+        setTaskButtons(false);
+      }
+    }
+
+    function setTaskButtons(disabled) {
+      for (const button of [taskApprove, taskResume, taskExecute, taskCancel, taskRetry]) {
+        if (button) button.disabled = disabled;
+      }
+    }
+
+    function renderQueueItem(value, type) {
+      const item = document.createElement("div");
+      const top = document.createElement("div");
+      const title = document.createElement("strong");
+      const badge = document.createElement("span");
+      const id = document.createElement("code");
+
+      item.className = type === "task" ? "queue-item interactive" : "queue-item";
+      if (type === "task" && value.id) item.dataset.taskId = value.id;
+      top.className = "queue-top";
+      title.className = "queue-title";
+      badge.className = badgeClass(value.status, type);
+
+      title.textContent = value.title || value.action || value.summary || value.id || "Untitled item";
+      badge.textContent = type === "approval" ? "pending" : (value.status || "queued");
+      id.textContent = value.id || "";
+
+      top.appendChild(title);
+      top.appendChild(badge);
+      item.appendChild(top);
+
+      if (value.summary && value.summary !== title.textContent) {
+        const summary = document.createElement("div");
+        summary.className = "queue-meta";
+        summary.textContent = value.summary;
+        item.appendChild(summary);
+      }
+
+      item.appendChild(id);
+      if (type === "task" && value.id) {
+        item.addEventListener("click", () => showTaskDetail(value.id));
+      }
+      return item;
+    }
+
+    function renderItems(target, items, emptyText, type) {
+      target.innerHTML = "";
+      if (!Array.isArray(items) || !items.length) {
+        target.appendChild(emptyNode(emptyText));
+        return;
+      }
+      for (const value of items) {
+        target.appendChild(renderQueueItem(value, type));
+      }
+    }
+
+    function renderCronJobs(jobs) {
+      if (!cronJobsPanel) return;
+      cronJobsPanel.innerHTML = "";
+      if (!Array.isArray(jobs) || !jobs.length) {
+        cronJobsPanel.appendChild(emptyNode("No cron jobs configured."));
+        return;
+      }
+      for (const job of jobs) {
+        const item = document.createElement("div");
+        const top = document.createElement("div");
+        const title = document.createElement("strong");
+        const badge = document.createElement("span");
+        const meta = document.createElement("div");
+        const command = document.createElement("code");
+        item.className = "queue-item";
+        top.className = "queue-top";
+        title.className = "queue-title";
+        title.textContent = job.name || job.id;
+        badge.className = job.enabled ? "badge good" : "badge danger";
+        badge.textContent = job.enabled ? "enabled" : "disabled";
+        meta.className = "queue-meta";
+        meta.textContent = `${job.schedule} · next ${job.next_run_at || "not scheduled"}`;
+        command.textContent = job.command || "";
+        top.appendChild(title);
+        top.appendChild(badge);
+        item.appendChild(top);
+        item.appendChild(meta);
+        item.appendChild(command);
+        cronJobsPanel.appendChild(item);
+      }
+    }
+
+    async function refreshProof() {
+      if (!proofOutput) return;
+      const response = await fetch("/api/proof");
+      const data = await response.json();
+      proofOutput.textContent = response.ok ? JSON.stringify(data, null, 2) : (data.error || "Unable to load proof.");
+    }
+
+    async function refreshRuntime() {
+      const [tasksResponse, approvalsResponse, cronResponse] = await Promise.all([
+        fetch("/api/tasks"),
+        fetch("/api/approvals?status=pending"),
+        fetch("/api/cron/jobs"),
+      ]);
+      const tasks = await tasksResponse.json();
+      const approvals = await approvalsResponse.json();
+      const cronJobs = await cronResponse.json();
+      renderItems(tasksPanel, tasks, "No automation tasks yet.", "task");
+      renderItems(approvalsPanel, approvals, "No pending approvals.", "approval");
+      renderCronJobs(cronJobs);
+      setCounts(Array.isArray(tasks) ? tasks : [], Array.isArray(approvals) ? approvals : []);
+      if (cronCount) cronCount.textContent = Array.isArray(cronJobs) ? cronJobs.length : 0;
+      if (cronNavCount) cronNavCount.textContent = Array.isArray(cronJobs) ? cronJobs.length : 0;
+      if (!selectedTask && Array.isArray(tasks) && tasks.length) {
+        const preferred = tasks.find((task) => task.kind === "website-workflow" && ["waiting_for_approval", "queued"].includes(task.status))
+          || tasks.find((task) => ["waiting_for_approval", "queued"].includes(task.status))
+          || tasks[0];
+        await showTaskDetail(preferred.id);
+      }
+    }
+
+    document.querySelectorAll(".nav button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".nav button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        const target = button.dataset.target;
+        document.querySelectorAll("[id$='-section']").forEach((section) => section.classList.add("hidden-section"));
+        const selected = document.querySelector(`#${target}-section`);
+        if (selected) selected.classList.remove("hidden-section");
+      });
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage("user", message);
+      input.value = "";
+      send.disabled = true;
+
+      try {
+        const response = await fetch("/api/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, session_id: sessionId }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        addMessage("assistant", data.reply || "");
+      } catch (error) {
+        addMessage("error", error.message);
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
+    });
+
+    document.querySelector("#approve-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const approvalId = document.querySelector("#approval-id").value.trim();
+      if (!approvalId) return;
+      await fetch(`/api/approvals/${approvalId}/approve`, { method: "POST" });
+      document.querySelector("#approval-id").value = "";
+      await refreshRuntime();
+      if (selectedTask) await showTaskDetail(selectedTask.id);
+    });
+
+    taskApprove.addEventListener("click", () => {
+      if (!selectedApprovalId) return;
+      runTaskAction("Approving plan", () => fetch(`/api/approvals/${selectedApprovalId}/approve`, { method: "POST" }));
+    });
+
+    taskResume.addEventListener("click", () => {
+      if (!selectedTask) return;
+      runTaskAction("Resuming workflow", () => fetch(`/api/web/workflow/${selectedTask.id}/resume`, { method: "POST" }));
+    });
+
+    taskExecute.addEventListener("click", () => {
+      if (!selectedTask || !selectedApprovalId) return;
+      runTaskAction("Executing approved check", () => fetch(`/api/web/workflow/${selectedTask.id}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval_id: selectedApprovalId, timeout_seconds: 120 }),
+      }));
+    });
+
+    taskCancel.addEventListener("click", () => {
+      if (!selectedTask) return;
+      runTaskAction("Cancelling task", () => fetch(`/api/tasks/${selectedTask.id}/cancel`, { method: "POST" }));
+    });
+
+    taskRetry.addEventListener("click", () => {
+      if (!selectedTask) return;
+      runTaskAction("Retrying task", () => fetch(`/api/tasks/${selectedTask.id}/retry`, { method: "POST" }));
+    });
+
+    document.querySelector("#email-draft-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (emailOutput) emailOutput.textContent = "Preparing draft...";
+      const payload = {
+        to: document.querySelector("#email-to").value.trim(),
+        subject: document.querySelector("#email-subject").value.trim(),
+        body: document.querySelector("#email-body").value.trim(),
+      };
+      const response = await fetch("/api/email/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      addMessage(response.ok ? "assistant" : "error", response.ok ? `Draft ready for approval: ${data.approval.id}` : data.error);
+      if (emailOutput) {
+        emailOutput.textContent = response.ok
+          ? `Draft ready for approval: ${data.approval.id}`
+          : (data.error || "Draft request failed.");
+      }
+      await refreshRuntime();
+    });
+
+    document.querySelector("#build-site-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = {
+        prompt: document.querySelector("#site-prompt").value.trim(),
+        path: document.querySelector("#site-path").value.trim(),
+      };
+      const response = await fetch("/api/build-site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      addMessage(response.ok ? "assistant" : "error", response.ok ? `${data.status}: ${data.summary}` : data.error);
+      await refreshRuntime();
+    });
+
+    document.querySelector("#run-eval").addEventListener("click", async () => {
+      const output = document.querySelector("#eval-output");
+      output.textContent = "Running eval harness...";
+      const response = await fetch("/api/eval", { method: "POST" });
+      const data = await response.json();
+      output.textContent = JSON.stringify(data, null, 2);
+      await refreshRuntime();
+    });
+
+    document.querySelector("#cron-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = {
+        name: document.querySelector("#cron-name").value.trim(),
+        schedule: document.querySelector("#cron-schedule").value.trim(),
+        command: document.querySelector("#cron-command").value.trim(),
+        cwd: document.querySelector("#cron-cwd").value.trim() || ".",
+      };
+      const response = await fetch("/api/cron/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      cronOutput.textContent = response.ok ? `Added ${data.id}` : data.error;
+      await refreshRuntime();
+    });
+
+    document.querySelector("#cron-tick").addEventListener("click", async () => {
+      cronOutput.textContent = "Checking due jobs...";
+      const response = await fetch("/api/cron/tick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dry_run: false }),
+      });
+      const data = await response.json();
+      cronOutput.textContent = JSON.stringify(data, null, 2);
+      await refreshRuntime();
+    });
+
+    proofExport.addEventListener("click", async () => {
+      proofOutput.textContent = "Exporting proof report...";
+      const response = await fetch("/api/proof/export", { method: "POST" });
+      const data = await response.json();
+      proofOutput.textContent = response.ok ? `Proof report written:\n${data.path}` : (data.error || "Export failed.");
+    });
+
+    setInterval(async () => {
+      try {
+        const response = await fetch("/api/stats");
+        const stats = await response.json();
+        document.querySelector("#total-sessions").textContent = stats.total_sessions || 0;
+        document.querySelector("#total-tokens").textContent = Number(stats.total_tokens || 0).toLocaleString();
+        await refreshRuntime();
+      } catch (_) {}
+    }, 30000);
+
+    refreshRuntime().catch(() => {});
+    refreshProof().catch(() => {});
+  </script>
+</body>
+</html>
