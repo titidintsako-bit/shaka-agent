@@ -643,7 +643,7 @@
       <div class="sidebar-foot">
         <div class="workspace-chip">
           <div class="sub">Workspace</div>
-          <code>{{ runtime.workspace_path }}</code>
+          <code>Local Shaka workspace</code>
         </div>
       </div>
     </aside>
@@ -656,7 +656,7 @@
         </div>
         <div class="status-strip" aria-label="Runtime status">
           <span class="pill"><span class="dot"></span>Gateway</span>
-          <span class="pill">{{ runtime.gateway.host }}:{{ runtime.gateway.port }}</span>
+          <span class="pill">{{ "Loopback gateway" if runtime.gateway.binds_loopback else "Configured gateway" }}</span>
           <span class="pill">{{ runtime.provider.provider }} / {{ runtime.provider.model }}</span>
           <span class="pill">{{ "daemon running" if runtime.daemon.running else "daemon stopped" }}</span>
         </div>
@@ -704,10 +704,10 @@
                 {% for task in tasks %}
                   <div class="queue-item interactive" data-task-id="{{ task.id }}">
                     <div class="queue-top">
-                      <strong class="queue-title">{{ task.title }}</strong>
+                      <strong class="queue-title">{{ task.title|safe_display }}</strong>
                       <span class="badge good">{{ task.status }}</span>
                     </div>
-                    {% if task.summary %}<div class="queue-meta">{{ task.summary }}</div>{% endif %}
+                    {% if task.summary %}<div class="queue-meta">{{ task.summary|safe_display }}</div>{% endif %}
                     <code>{{ task.id }}</code>
                   </div>
                 {% endfor %}
@@ -774,10 +774,10 @@
                   {% for approval in approvals %}
                     <div class="queue-item">
                       <div class="queue-top">
-                        <strong class="queue-title">{{ approval.action }}</strong>
+                        <strong class="queue-title">{{ approval.action|safe_display }}</strong>
                         <span class="badge warn">pending</span>
                       </div>
-                      <div class="queue-meta">{{ approval.summary }}</div>
+                      <div class="queue-meta">{{ approval.summary|safe_display }}</div>
                       <code>{{ approval.id }}</code>
                     </div>
                   {% endfor %}
@@ -796,13 +796,13 @@
             <div class="panel-head">
               <div>
                 <h3>Runtime</h3>
-                <p>{{ runtime.home }}</p>
+                <p>Local Shaka runtime</p>
               </div>
             </div>
             <div class="panel-body tool-grid">
               <div class="tool-card">
                 <strong>Gateway Auth</strong>
-                <div class="sub">{{ runtime.gateway.auth }} on {{ runtime.gateway.host }}:{{ runtime.gateway.port }}</div>
+                <div class="sub">{{ runtime.gateway.auth }} auth enabled</div>
               </div>
               <div class="tool-card">
                 <strong>Daemon</strong>
@@ -931,11 +931,11 @@
           <div class="panel-body tool-grid">
             <div class="tool-card">
               <strong>Runtime</strong>
-              <div class="sub">{{ runtime.home }}</div>
+              <div class="sub">Local Shaka runtime</div>
             </div>
             <div class="tool-card">
               <strong>Workspace</strong>
-              <div class="sub">{{ runtime.workspace_path }}</div>
+              <div class="sub">Local Shaka workspace</div>
             </div>
             <div class="tool-card">
               <strong>Provider</strong>
@@ -943,7 +943,7 @@
             </div>
             <div class="tool-card">
               <strong>Gateway</strong>
-              <div class="sub">{{ runtime.gateway.host }}:{{ runtime.gateway.port }} with {{ runtime.gateway.auth }} auth</div>
+              <div class="sub">{{ "Loopback gateway" if runtime.gateway.binds_loopback else "Configured gateway" }} with {{ runtime.gateway.auth }} auth</div>
             </div>
           </div>
         </section>
@@ -1104,6 +1104,29 @@
       return item;
     }
 
+    function sanitizeDisplayText(value) {
+      return String(value || "")
+        .replace(/\b[A-Z]:\\Users\\[^\\\s]+(?:\\[^\s<>"']*)*/gi, "[local-path]")
+        .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, "[email]")
+        .replace(/\b(?:sk|gsk|ghp|github_pat)_[A-Za-z0-9._-]{8,}\b/g, "[redacted]");
+    }
+
+    function formatTaskSummary(task) {
+      const lines = [
+        `Title: ${sanitizeDisplayText(task.title || "Untitled task")}`,
+        `Kind: ${task.kind || "task"}`,
+        `Status: ${task.status || "unknown"}`,
+      ];
+      if (task.summary) lines.push(`Summary: ${sanitizeDisplayText(task.summary)}`);
+      if (Array.isArray(task.steps)) lines.push(`Steps recorded: ${task.steps.length}`);
+      if (task.created_at) lines.push(`Created: ${task.created_at}`);
+      const approvalId = findApprovalId(task);
+      if (approvalId) lines.push("Human approval: required");
+      lines.push("");
+      lines.push("Raw payload is kept behind the local API; this dashboard view is redacted for screenshots.");
+      return lines.join("\n");
+    }
+
     function badgeClass(status, type) {
       if (type === "approval") return "badge warn";
       if (status === "failed" || status === "cancelled") return "badge danger";
@@ -1125,7 +1148,7 @@
         selectedApprovalId = findApprovalId(data);
         renderTaskActions(data);
         selectedTaskLabel.textContent = `${data.kind || "task"} / ${data.status || "unknown"}`;
-        taskDetail.textContent = JSON.stringify(data, null, 2);
+        taskDetail.textContent = formatTaskSummary(data);
       } catch (error) {
         selectedTask = null;
         selectedApprovalId = "";
@@ -1200,7 +1223,7 @@
       title.className = "queue-title";
       badge.className = badgeClass(value.status, type);
 
-      title.textContent = value.title || value.action || value.summary || value.id || "Untitled item";
+      title.textContent = sanitizeDisplayText(value.title || value.action || value.summary || value.id || "Untitled item");
       badge.textContent = type === "approval" ? "pending" : (value.status || "queued");
       id.textContent = value.id || "";
 
@@ -1211,7 +1234,7 @@
       if (value.summary && value.summary !== title.textContent) {
         const summary = document.createElement("div");
         summary.className = "queue-meta";
-        summary.textContent = value.summary;
+        summary.textContent = sanitizeDisplayText(value.summary);
         item.appendChild(summary);
       }
 

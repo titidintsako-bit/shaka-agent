@@ -6,6 +6,7 @@ Simple, fast, lightweight dashboard using Flask and vanilla JavaScript.
 import os
 import sys
 import time
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 
@@ -23,11 +24,14 @@ from shaka.local_state import runtime_status
 from shaka.proof import ProofExporter
 from shaka.cron import CronStore
 from shaka.providers import is_model_configured
+from shaka.redaction import redact_text
 from shaka.repo_memory import RepoMemory
 from shaka.web_runtime import WebVerifier
 from shaka.website_builder import WebsiteBuilder
 
 AUTH_COOKIE = "shaka_gateway_token"
+EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
+WINDOWS_USER_PATH_RE = re.compile(r"\b[A-Za-z]:\\Users\\[^\\\s]+(?:\\[^\s<>\"']*)*")
 
 
 def create_app(config_path=None, config=None, gateway_token=None, require_token=False):
@@ -40,6 +44,16 @@ def create_app(config_path=None, config=None, gateway_token=None, require_token=
 
     config = config or load_config(config_path)
     gateway_token = gateway_token or os.environ.get("SHAKA_GATEWAY_TOKEN", "")
+
+    def safe_display(value):
+        """Redact secrets and local user paths from screenshot-facing text."""
+        text = redact_text(value)
+        text = EMAIL_RE.sub("[email]", text)
+        text = WINDOWS_USER_PATH_RE.sub("[local-path]", text)
+        return text
+
+    app.jinja_env.filters["safe_display"] = safe_display
+
     memory = MemoryManager(config.paths.base_dir)
     try:
         session_db = SessionDB(config.paths.db_path)
